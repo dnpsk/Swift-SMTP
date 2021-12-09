@@ -27,6 +27,7 @@ public struct SMTP {
     private let authMethods: [String: AuthMethod]
     private let domainName: String
     private let timeout: UInt
+    private let useCache: Bool
 
     /// TLSMode enum for what form of connection security to enforce.
     public enum TLSMode {
@@ -69,13 +70,15 @@ public struct SMTP {
                 tlsConfiguration: TLSConfiguration? = nil,
                 authMethods: [AuthMethod] = [],
                 domainName: String = "localhost",
-                timeout: UInt = 10) {
+                timeout: UInt = 10,
+                useCache: Bool = true) {
         self.hostname = hostname
         self.email = email
         self.password = password
         self.port = port
         self.tlsMode = tlsMode
         self.tlsConfiguration = tlsConfiguration
+        self.useCache = useCache
 
         let _authMethods = !authMethods.isEmpty ? authMethods : [
             AuthMethod.cramMD5,
@@ -150,7 +153,8 @@ public struct SMTP {
                 socket: socket,
                 mailsToSend: mails,
                 progress: progress,
-                completion: completion).send()
+                completion: completion,
+                useCache: useCache).send()
         } catch {
             completion?([], mails.map { ($0, error) })
         }

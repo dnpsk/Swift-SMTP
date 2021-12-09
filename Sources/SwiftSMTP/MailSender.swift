@@ -39,12 +39,13 @@ class MailSender {
     init(socket: SMTPSocket,
          mailsToSend: [Mail],
          progress: Progress,
-         completion: Completion) {
+         completion: Completion,
+         useCache: Bool) {
         self.socket = socket
         self.mailsToSend = mailsToSend
         self.progress = progress
         self.completion = completion
-        dataSender = DataSender(socket: socket)
+        dataSender = DataSender(socket: socket, useCache: useCache)
     }
 
     func send() {

@@ -23,10 +23,12 @@ import Foundation
 struct DataSender {
     // Socket we use to read and write data to
     private let socket: SMTPSocket
-
+    private let useCache: Bool
+    
     // Init a new instance of `DataSender`
-    init(socket: SMTPSocket) {
+    init(socket: SMTPSocket, useCache: Bool) {
         self.socket = socket
+        self.useCache = useCache
     }
 
     // Send the text and attachments of the `mail`
@@ -126,34 +128,37 @@ extension DataSender {
     // Checks if the base 64 encoded version has been cached first.
     func sendData(_ data: Data) throws {
         #if os(macOS)
-            if let encodedData = cache.object(forKey: data as AnyObject) as? Data {
+            if useCache, let encodedData = cache.object(forKey: data as AnyObject) as? Data {
                 return try send(encodedData)
             }
         #else
-            if let encodedData = cache.object(forKey: NSData(data: data) as AnyObject) as? Data {
+            if useCache, let encodedData = cache.object(forKey: NSData(data: data) as AnyObject) as? Data {
                 return try send(encodedData)
             }
         #endif
 
         let encodedData = data.base64EncodedData(options: .lineLength76Characters)
         try send(encodedData)
-
-        #if os(macOS)
-            cache.setObject(encodedData as AnyObject, forKey: data as AnyObject)
-        #else
-            cache.setObject(NSData(data: encodedData) as AnyObject, forKey: NSData(data: data) as AnyObject)
-        #endif
+        
+        
+        if useCache {
+            #if os(macOS)
+                cache.setObject(encodedData as AnyObject, forKey: data as AnyObject)
+            #else
+                cache.setObject(NSData(data: encodedData) as AnyObject, forKey: NSData(data: data) as AnyObject)
+            #endif
+        }
     }
 
     // Sends a local file at the given path. File must be base 64 encoded before sending. Checks the cache first.
     // Throws an error if file could not be found.
     func sendFile(at path: String) throws {
         #if os(macOS)
-            if let data = cache.object(forKey: path as AnyObject) as? Data {
+            if useCache, let data = cache.object(forKey: path as AnyObject) as? Data {
                 return try send(data)
             }
         #else
-            if let data = cache.object(forKey: NSString(string: path) as AnyObject) as? Data {
+            if useCache, let data = cache.object(forKey: NSString(string: path) as AnyObject) as? Data {
                 return try send(data)
             }
         #endif
@@ -166,22 +171,24 @@ extension DataSender {
         try send(data)
         file.closeFile()
 
-        #if os(macOS)
-            cache.setObject(data as AnyObject, forKey: path as AnyObject)
-        #else
-            cache.setObject(NSData(data: data) as AnyObject, forKey: NSString(string: path) as AnyObject)
-        #endif
+        if useCache {
+            #if os(macOS)
+                cache.setObject(data as AnyObject, forKey: path as AnyObject)
+            #else
+                cache.setObject(NSData(data: data) as AnyObject, forKey: NSString(string: path) as AnyObject)
+            #endif
+        }
     }
 
     // Send an HTML attachment. HTML must be base 64 encoded before sending.
     // Checks if the base 64 encoded version is in cache first.
     func sendHTML(_ html: String) throws {
         #if os(macOS)
-            if let encodedHTML = cache.object(forKey: html as AnyObject) as? String {
+            if useCache, let encodedHTML = cache.object(forKey: html as AnyObject) as? String {
                 return try send(encodedHTML)
             }
         #else
-            if let encodedHTML = cache.object(forKey: NSString(string: html) as AnyObject) as? String {
+            if useCache, let encodedHTML = cache.object(forKey: NSString(string: html) as AnyObject) as? String {
                 return try send(encodedHTML)
             }
         #endif
@@ -189,11 +196,13 @@ extension DataSender {
         let encodedHTML = html.base64Encoded
         try send(encodedHTML)
 
-        #if os(macOS)
-            cache.setObject(encodedHTML as AnyObject, forKey: html as AnyObject)
-        #else
-            cache.setObject(NSString(string: encodedHTML) as AnyObject, forKey: NSString(string: html) as AnyObject)
-        #endif
+        if useCache {
+            #if os(macOS)
+                cache.setObject(encodedHTML as AnyObject, forKey: html as AnyObject)
+            #else
+                cache.setObject(NSString(string: encodedHTML) as AnyObject, forKey: NSString(string: html) as AnyObject)
+            #endif
+        }
     }
 }
 
